@@ -1,7 +1,7 @@
 # ldbAfrica Gateway
 ### Cross-Border Crypto Payment Infrastructure — Systems Architecture
 
-> **Version:** 1.0 — Finalized Architecture (v1 Build Scope)
+> **Version:** 1.0 — Architecture (v1 Build Scope)
 > **Product:** ldbAfrica
 > **Classification:** Internal Engineering & Product Documentation
 
@@ -13,7 +13,7 @@
 2. [High-Level Architecture](#2-high-level-architecture)
 3. [Payment Flow — End to End](#3-payment-flow--end-to-end)
 4. [Module 1: Blockchain Smart Router](#4-module-1-blockchain-smart-router)
-5. [Module 2: Fiat Settlement Router](#5-module-2-fiat-settlement-router)
+5. [Module 2: Fiat Settlement Router](#5-module-2-fiat-settlement-router)-(v2+ consideration)
 6. [Module 3: Rate Locking + FX Management](#6-module-3-rate-locking--fx-management)
 7. [Module 4: Transaction Intelligence (Fraud/Risk)](#7-module-4-transaction-intelligence-fraudrisk)
 8. [Module 5: Stablecoin Optimization](#8-module-5-stablecoin-optimization)
@@ -201,7 +201,7 @@ Each sweep wallet needs a gas float in native token (TRX, MATIC, ETH on Base). A
 
 ---
 
-## 5. Module 2: Fiat Settlement Router
+## 5. Module 2: Fiat Settlement Router(v2+ consideration)
 
 ### Responsibility
 
@@ -329,9 +329,9 @@ Prices are cached in Redis with a 15-second TTL. Price feeds run as a continuous
 | Source | Role | Notes |
 |---|---|---|
 | OTC broker executable rate | Ground truth for settlement | This is the rate we can actually transact at |
-| Open Exchange Rates API | Mid-market reference | Used for display and accounting only |
+<!-- | Open Exchange Rates API | Mid-market reference | Used for display and accounting only | -->
 
-> The displayed rate and the executable rate are different. The OTC broker's bid includes their spread. ldbAfrica's locked rate must be based on the OTC executable quote, not a public API mid-market rate. A displayed rate built on mid-market without OTC adjustment will produce guaranteed loss on settlement.
+> The OTC broker's bid includes their spread. ldbAfrica's locked rate must be based on the OTC executable quote including a 1.5% buffer in the negative direction to cover for fx fluctuations. 
 
 ### Stablecoin Accounting Rate
 
@@ -632,9 +632,9 @@ Merchant Ledger Entry:
 ### Compliance & Regulatory
 
 | Failure | Risk Level | Mitigation |
-|---|---|---|
+<!-- |---|---|---|
 | Operating without VASP registration | Critical | Register with SEC Nigeria as Virtual Asset Service Provider before launch |
-| CBN regulatory action | High | Structure service as stablecoin B2B technology (not crypto exchange); maintain legal opinion per market |
+| CBN regulatory action | High | Structure service as stablecoin B2B technology (not crypto exchange); maintain legal opinion per market | -->
 | OFAC sanctions violation | Critical | Mandatory address screening on every inbound transaction before crediting |
 | AML gap on anonymous payers | High | Address screening is the substitute for payer KYC; document this in merchant ToS |
 | Transaction reporting threshold breach | Medium | Auto-generate CTR equivalent for transactions > $10,000; consult local legal on specific thresholds |
@@ -736,6 +736,6 @@ Ghana (GHS), Uganda (UGX), Tanzania (TZS), South Africa (ZAR). Each corridor req
 
 ---
 
-*Document version: 1.0 — Finalized v1 Architecture*
-*Product: ldbAfrica Gateway*
+*Document version: 1.0 — v1 Architecture*
+*Product: ldbAfrica*
 *Audience: Engineering team, Product Manager*
