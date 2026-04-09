@@ -13,7 +13,7 @@
 2. [High-Level Architecture](#2-high-level-architecture)
 3. [Payment Flow — End to End](#3-payment-flow--end-to-end)
 4. [Module 1: Blockchain Smart Router](#4-module-1-blockchain-smart-router)
-5. [Module 2: Fiat Settlement Router](#5-module-2-fiat-settlement-router)-(v2+ consideration)
+5. [Module 2: Fiat Settlement Router](#5-module-2-fiat-settlement-router) -(v2+ consideration)
 6. [Module 3: Rate Locking + FX Management](#6-module-3-rate-locking--fx-management)
 7. [Module 4: Transaction Intelligence (Fraud/Risk)](#7-module-4-transaction-intelligence-fraudrisk)
 8. [Module 5: Stablecoin Optimization](#8-module-5-stablecoin-optimization)
@@ -147,10 +147,13 @@ Determine which chains to support for a given checkout session, monitor those ch
 
 | Chain | Asset | Fee Level | Confirmation Time | Notes |
 |---|---|---|---|---|
-| TRON | USDT (TRC-20) | ~$0.001 | ~1 min (20 blocks) | Dominant in African OTC markets. Primary. |
+| BNB | USDT (BEP-20) | ~$0.01-0.05 | ~1 min (20 blocks) | Dominant in African OTC markets. Primary. |
+| Polygon | USDT | ~$0.01-0.05 | ~1 min (20 blocks) | Dominant in African OTC markets. Primary. |
 | Polygon | USDC | ~$0.01–0.05 | ~1–2 min (32 blocks) | USDC preferred, PoS bridge well-established |
 | Base | USDC | ~$0.01–0.05 | ~1–2 min | Coinbase L2, native USDC issuance, growing retail base |
-| Stellar | USDC | ~$0.00001 | ~5 sec (1 ledger) | Ideal for cross-border; memo field eliminates address-per-session problem |
+| Solana | USDC | ~$0.01–0.05 | ~1–2 min | sub cent fees and fast finality with large user base |
+
+<!-- | Stellar | USDC | ~$0.00001 | ~5 sec (1 ledger) | Ideal for cross-border; memo field eliminates address-per-session problem | -->
 
 > **Design note on chain selection:** ldbAfrica does not force the user onto a chain. The widget displays a supported address for each chain. The user selects based on what they hold. The router monitors all generated addresses simultaneously and processes whichever chain the user pays on.
 
@@ -280,7 +283,7 @@ Where λ penalizes settlement delay and γ penalizes source risk. At v1, λ and 
 
 ### Rate Lock Strategy
 
-ldbAfrica locks the exchange rate at **checkout session creation** — the moment the user opens the payment widget — not after on-chain confirmation. This gives users a fixed price to pay and gives merchants a guaranteed fiat amount.
+ldbAfrica locks the exchange rate at checkout session creation — the moment the user opens the payment widget. This provides the user with a fixed crypto price and guarantees the merchant their exact fiat expectation.
 
 **Rate lock parameters:**
 
@@ -290,28 +293,42 @@ ldbAfrica locks the exchange rate at **checkout session creation** — the momen
   "session_id": "uuid",
   "merchant_id": "uuid",
   "crypto_asset": "USDT",
-  "crypto_amount": 384.62,
+  "crypto_amount": 342.46,
   "fiat_currency": "NGN",
   "fiat_amount": 500000,
-  "effective_rate": 1300,
-  "created_at": "2025-01-15T10:00:00Z",
-  "expires_at": "2025-01-15T10:20:00Z",
+  "effective_rate": 1460,
+  "created_at": "2026-04-09T10:00:00Z",
+  "expires_at": "2026-04-09T10:15:00Z",
   "status": "ACTIVE"
 }
 ```
 
-Rate lock window: **20 minutes.** If no on-chain transaction is confirmed within this window, the session expires. The user must initiate a new payment.
+Rate lock window: **15 minutes**. This is the optimal duration to accommodate users withdrawing from centralized exchanges (which can take 5–10 minutes) while minimizing ldbAfrica's exposure to FX arbitrage. If no on-chain transaction is confirmed within this 15-minute window, the session expires and the user must generate a new payment request.
 
 ### OTC Rate Window Mismatch
 
 OTC broker rate quotes are valid for 5–10 minutes. Our lock window is 20 minutes. **We do not lock with the OTC broker at session initiation.** Instead:
 
-- The rate locked with the user is based on: live market price + ldbAfrica spread buffer (minimum 1.5%)
-- The 1.5% spread absorbs USDT/NGN movement during the 20-minute window (historical 20-minute volatility for USDT/NGN is typically <0.5% in non-shock conditions)
-- When the on-chain transaction confirms, we go to the OTC desk at that moment for the executable rate
-- Our spread is the guaranteed margin between our locked rate and the OTC execution rate
+### Pricing Logic: OTC Ground Truth
+We do not price off live market rates (e.g., Binance P2P or CoinGecko). Live market rates contain spread buffers that are inaccessible to us. **Our ground truth is the live executable API bid rate from our OTC liquidity providers**.
 
-For transactions above $5,000 equivalent, an additional 0.2% buffer is applied given larger absolute slippage exposure.
+Because OTC broker quotes are typically only valid for 10 seconds to a few minutes, we cannot lock the exact backend OTC rate for the user's entire 15-minute window. We manage this risk via a negative buffer strategy:
+
+**Fetch Ground Truth**: System pings the OTC partner API for the live executable NGN/USDT bid rate (e.g., ₦1,485).
+
+**Apply Margin/Buffer**: We subtract a standard 1.5% buffer from the OTC bid rate to compute the effective_rate (e.g., ₦1,460).
+
+**Lock User Price**: The user is charged based on the effective_rate. (A lower NGN rate requires the user to pay slightly more USDT to cover the required fiat amount).
+
+**Execution**: When the crypto arrives and confirms, we execute the fiat conversion with the OTC desk at the current live rate.
+
+## Risk mitigations:
+
+The 1.5% spread guarantees our margin and absorbs standard USDT/NGN volatility during the 15-minute lock window.
+
+**Dynamic Volatility Bump**: If internal monitors detect high intra-day FX volatility, the buffer dynamically scales up to 2.5% to protect the treasury.
+
+**High-Value Surcharge**: For checkout sessions exceeding $5,000 equivalent, an additional 0.2% is automatically added to the buffer to offset larger absolute slippage exposure.
 
 ### Price Data Sources
 
@@ -347,7 +364,7 @@ USDT and USDC trade at $0.9993–$1.0002 in normal conditions. ldbAfrica does no
 
 ### Scope (v1)
 
-v1 implements address screening + a rule-based risk engine. All transaction data is logged from day one to build the dataset for v2 ML models.
+v1 implements address screening + a rule-based risk engine and basic identifiers of payers from merchant. All transaction data is logged from day one to build the dataset for v2 ML models.
 
 ### Data Captured Per Transaction
 
@@ -696,7 +713,7 @@ where `salt = keccak256(merchant_id || session_id)`.
 
 The address is pre-computed off-chain and given to the user. The forwarder contract is only deployed (and immediately auto-executes a transfer to treasury) when funds actually arrive — meaning you pay deployment gas only on successful payments, not for every session created.
 
-**Target chains for v2:** Polygon, Base, Ethereum. TRON gas is negligible so HD sweep remains optimal there.
+**Target chains for v2:** Polygon, Base, Ethereum, Tron. 
 
 **Reference implementations:** OpenZeppelin MinimalForwarder, Gnosis Safe payment receiver.
 
