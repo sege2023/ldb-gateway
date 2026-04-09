@@ -148,7 +148,7 @@ Determine which chains to support for a given checkout session, monitor those ch
 | Chain | Asset | Fee Level | Confirmation Time | Notes |
 |---|---|---|---|---|
 | BNB | USDT (BEP-20) | ~$0.01-0.05 | ~1 min (20 blocks) | Dominant in African OTC markets. Primary. |
-| Polygon | USDT | ~$0.01-0.05 | ~1 min (20 blocks) | Dominant in African OTC markets. Primary. |
+| Polygon | USDT | ~$0.01-0.05 | ~1 min (20 blocks) | Low fees |
 | Polygon | USDC | ~$0.01–0.05 | ~1–2 min (32 blocks) | USDC preferred, PoS bridge well-established |
 | Base | USDC | ~$0.01–0.05 | ~1–2 min | Coinbase L2, native USDC issuance, growing retail base |
 | Solana | USDC | ~$0.01–0.05 | ~1–2 min | sub cent fees and fast finality with large user base |
