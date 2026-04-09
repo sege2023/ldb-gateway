@@ -101,11 +101,11 @@ ldbAfrica is a **stablecoin-first, cross-border crypto payment gateway** for Afr
    - Creates a session: { session_id, merchant_id, fiat_amount, fiat_currency }
    - Calls Rate Lock Engine → fetches live USDT/USD + USD/NGN rates
    - Computes crypto_amount_required = fiat_amount / effective_rate
-   - Locks rate for 20 minutes: { rate_id, rate, expires_at }
+   - Locks rate for 15 minutes: { rate_id, rate, expires_at }
    - Calls Wallet Infrastructure → derives unique deposit address per session
    - Returns to widget: deposit address per supported chain + crypto amount
         │
-3. USER selects their chain (TRON, Polygon, Base, Stellar)
+3. USER selects their chain (BNB, Polygon, Base, Solana)
    Widget displays QR code and address for chosen chain
         │
 4. USER sends crypto from their wallet
